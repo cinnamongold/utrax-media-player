@@ -99,76 +99,46 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch(e) {
-        console.error("Failed to load directory handle", e);
+        console.error("Error loading directory handle:", e);
       }
 
-      // Load Tracks
+      // Load DB tracks
       try {
-        const storedTracks = await get('tracks');
-        if (storedTracks && Array.isArray(storedTracks)) {
-          const loadedTracks = storedTracks.map((t: any) => {
-            let coverUrl = null;
-            if (t.coverBlob) coverUrl = URL.createObjectURL(t.coverBlob);
-            return { ...t, coverUrl };
-          });
-          setTracks(loadedTracks);
-        }
+        const storedTracks: any[] = await get('tracks') || [];
+        // Restore tracks mapping file handles if possible
+        const restoredTracks = storedTracks.map(t => {
+          if (t.coverBlob) {
+            t.coverUrl = URL.createObjectURL(t.coverBlob);
+          }
+          return t;
+        });
+        setTracks(restoredTracks);
       } catch(e) {
-        console.error("Failed to load tracks", e);
+        console.error("Error loading tracks:", e);
       }
 
-      // Load Playlists
+      // Load DB playlists
       try {
-        const storedPlaylists = await get('playlists');
-        if (storedPlaylists && Array.isArray(storedPlaylists)) {
-          const loadedPlaylists = storedPlaylists.map((p: any) => ({
-            ...p,
-            tracks: p.tracks.map((t: any) => {
-              let coverUrl = null;
-              if (t.coverBlob) coverUrl = URL.createObjectURL(t.coverBlob);
-              return { ...t, coverUrl };
-            })
-          }));
-          setPlaylists(loadedPlaylists);
-        }
+        const storedPlaylists: any[] = await get('playlists') || [];
+        setPlaylists(storedPlaylists);
       } catch(e) {
-        console.error("Failed to load playlists", e);
+        console.error("Error loading playlists:", e);
       }
 
       setIsRestoring(false);
     };
-    
     loadData();
   }, []);
 
-  // Save Settings
+  // Save changes to DB
   useEffect(() => {
-    if (!isRestoring) {
-      localStorage.setItem('utrax_settings', JSON.stringify(settings));
-    }
-  }, [settings, isRestoring]);
-
-  // Save Tracks
-  useEffect(() => {
-    if (!isRestoring) {
-      const serializedTracks = tracks.map(t => ({
-        ...t,
-        file: undefined,
-        coverUrl: null
-      }));
-      set('tracks', serializedTracks).catch(e => console.error("Failed to save tracks", e));
-    }
+    if (isRestoring) return;
+    set('tracks', tracks.map(t => ({...t, file: undefined, coverUrl: undefined})));
   }, [tracks, isRestoring]);
 
-  // Save Playlists
   useEffect(() => {
-    if (!isRestoring) {
-      const serializedPlaylists = playlists.map(p => ({
-        ...p,
-        tracks: p.tracks.map(t => ({ ...t, file: undefined, coverUrl: null }))
-      }));
-      set('playlists', serializedPlaylists).catch(e => console.error("Failed to save playlists", e));
-    }
+    if (isRestoring) return;
+    set('playlists', playlists);
   }, [playlists, isRestoring]);
 
   const requestDirectoryPermission = async () => {
@@ -179,10 +149,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         setNeedsPermission(false);
         return true;
       }
+      return false;
     } catch(e) {
-      console.error("Failed to request permission", e);
+      console.error(e);
+      return false;
     }
-    return false;
   };
 
   const addTracks = (newTracks: Track[]) => {
@@ -195,13 +166,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   const removeTrack = (id: string) => {
     setTracks(prev => prev.filter(t => t.id !== id));
+    setHistory(prev => prev.filter(t => t.id !== id));
+    setPlaylists(prev => prev.map(p => ({
+      ...p,
+      tracks: p.tracks.filter(t => t.id !== id)
+    })));
   };
 
   const deleteTrackPermanently = async (track: Track) => {
     if (track.fileHandle && track.fileHandle.remove) {
       try {
         await track.fileHandle.remove();
-      } catch (e) {
+      } catch(e) {
         console.error("Failed to delete file from disk:", e);
       }
     }
@@ -211,7 +187,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const addToHistory = (track: Track) => {
     setHistory(prev => {
       const filtered = prev.filter(t => t.id !== track.id);
-      return [track, ...filtered].slice(0, settings.historyLimit);
+      const newHistory = [track, ...filtered];
+      return newHistory.slice(0, settings.historyLimit);
     });
   };
 
@@ -219,15 +196,23 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setHistory(prev => prev.filter(t => t.id !== trackId));
   };
 
-  const createPlaylist = (name: string, description: string = '', coverUrl: string | null = null, initialTracks: Track[] = []) => {
-    setPlaylists(prev => [
-      ...prev,
-      { id: Date.now().toString(), name, description, coverUrl, tracks: initialTracks }
-    ]);
+  const createPlaylist = (name: string, description?: string, coverUrl?: string | null, initialTracks: Track[] = []) => {
+    const newPlaylist: Playlist = {
+      id: Date.now().toString(),
+      name,
+      description,
+      coverUrl,
+      tracks: initialTracks,
+    };
+    setPlaylists(prev => [...prev, newPlaylist]);
   };
 
   const updateSettings = (newSettings: Partial<AppSettings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
+    setSettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      localStorage.setItem('utrax_settings', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const updateTrack = (id: string, updates: Partial<Track>) => {
@@ -275,20 +260,19 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeMultipleFromQueue = (indices: number[]) => {
-    const indicesSet = new Set(indices);
-    setQueue(prev => prev.filter((_, i) => !indicesSet.has(i)));
+    setQueue(prev => prev.filter((_, i) => !indices.includes(i)));
   };
 
   const clearQueue = () => setQueue([]);
 
   const shuffleQueue = () => {
     setQueue(prev => {
-      const copy = [...prev];
-      for (let i = copy.length - 1; i > 0; i--) {
+      const shuffled = [...prev];
+      for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
-      return copy;
+      return shuffled;
     });
   };
 
@@ -330,8 +314,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <PlayerContext.Provider
-      value={{
+    <PlayerContext.Provider 
+      value={{ 
         tracks, addTracks, removeTrack,
         history, addToHistory, removeFromHistory,
         playlists, createPlaylist,
@@ -351,9 +335,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         <audio
           ref={audioRef}
           src={audioSrc}
+          autoPlay={isPlaying}
           onEnded={playNext}
           onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
+          onPause={(e) => {
+            if (e.currentTarget.readyState !== 0) {
+              setIsPlaying(false);
+            }
+          }}
         />
       )}
     </PlayerContext.Provider>
