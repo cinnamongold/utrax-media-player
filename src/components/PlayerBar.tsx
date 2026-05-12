@@ -8,6 +8,19 @@ export default function PlayerBar({ onNavigate }: { onNavigate: (id: PageId, par
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
 
+  // Handle audio playback state separately
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.play().catch(e => console.error(e));
+    } else {
+      audio.pause();
+    }
+  }, [isPlaying, audioRef]);
+
+  // Handle event listeners separately so they don't unbind/rebind on play/pause
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -15,20 +28,18 @@ export default function PlayerBar({ onNavigate }: { onNavigate: (id: PageId, par
     const updateProgress = () => setProgress(audio.currentTime);
     const updateDuration = () => setDuration(audio.duration);
 
+    // Initial sync just in case
+    setProgress(audio.currentTime);
+    if (!isNaN(audio.duration)) setDuration(audio.duration);
+
     audio.addEventListener('timeupdate', updateProgress);
     audio.addEventListener('loadedmetadata', updateDuration);
-
-    if (isPlaying) {
-      audio.play().catch(e => console.error(e));
-    } else {
-      audio.pause();
-    }
 
     return () => {
       audio.removeEventListener('timeupdate', updateProgress);
       audio.removeEventListener('loadedmetadata', updateDuration);
     };
-  }, [isPlaying, currentTrack, audioRef]);
+  }, [audioRef, currentTrack]);
 
   const togglePlay = () => {
     if (!currentTrack) return;
