@@ -112,7 +112,7 @@ export default function PlayerBar({ onNavigate }: { onNavigate: (id: PageId, par
             <input 
               type="range"
               min={0}
-              max={duration || 100}
+              max={actualDuration || 100}
               value={progress}
               onChange={handleSeek}
               disabled={!currentTrack}
@@ -121,12 +121,12 @@ export default function PlayerBar({ onNavigate }: { onNavigate: (id: PageId, par
             <div className="w-full h-1 bg-white/10 rounded-full relative pointer-events-none">
               <div 
                 className="absolute top-0 left-0 h-full bg-[#92F7FF] rounded-full shadow-[0_0_10px_rgba(146,247,255,0.8)] pointer-events-none group-hover:h-1.5 transition-all -translate-y-[calc(50%-0.125rem)]" 
-                style={{ width: `${(progress / (duration || 1)) * 100}%` }}
+                style={{ width: `${progressPercent}%` }}
               ></div>
             </div>
           </div>
           <span className="text-[10px] text-white/40 font-mono w-8 tabular-nums">
-            -{formatTime(duration - progress)}
+            -{formatTime(timeRemaining)}
           </span>
         </div>
       </div>
