@@ -1,20 +1,7 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Run UTrax online
 
-# Run and deploy your AI Studio app
+1. Head to https://cinnamongold.github.io/utrax-media-player/
+2. Click Import on the left menu
+3. Play your music!
 
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/355756d3-7295-4998-b5e7-afe5eb0beb95
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+_Nothing is shared online. All of your music and data are stored strictly in your browser._
