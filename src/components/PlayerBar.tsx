@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle, List, Library } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle, List, Library, Repeat, Repeat1, Mic2 } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
 import { PageId } from '../types';
 
 export default function PlayerBar({ onNavigate }: { onNavigate: (id: PageId, params?: any) => void }) {
-  const { currentTrack, isPlaying, setIsPlaying, playNext, playPrevious, audioRef, settings, isShuffle, toggleShuffle } = usePlayer();
+  const { currentTrack, isPlaying, setIsPlaying, playNext, playPrevious, audioRef, settings, isShuffle, toggleShuffle, repeatMode, toggleRepeat, initialProgress, setInitialProgress } = usePlayer();
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
 
@@ -26,7 +26,14 @@ export default function PlayerBar({ onNavigate }: { onNavigate: (id: PageId, par
     if (!audio) return;
 
     const updateProgress = () => setProgress(audio.currentTime);
-    const updateDuration = () => setDuration(audio.duration);
+    const updateDuration = () => {
+      setDuration(audio.duration);
+      if (initialProgress > 0) {
+        audio.currentTime = initialProgress;
+        setProgress(initialProgress);
+        setInitialProgress(0);
+      }
+    };
 
     // Initial sync just in case
     setProgress(audio.currentTime);
@@ -114,6 +121,13 @@ export default function PlayerBar({ onNavigate }: { onNavigate: (id: PageId, par
           >
             <SkipForward size={20} fill="currentColor" />
           </button>
+          <button 
+            onClick={toggleRepeat}
+            className={`transition-colors ${repeatMode > 0 ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]' : 'text-white/40 hover:text-white'}`}
+            title={repeatMode === 0 ? "Enable Repeat" : repeatMode === 1 ? "Repeat One" : "Disable Repeat"}
+          >
+            {repeatMode === 2 ? <Repeat1 size={20} /> : <Repeat size={20} />}
+          </button>
         </div>
         <div className="w-full max-w-md flex items-center gap-3">
           <span className="text-[10px] text-white/40 font-mono w-8 text-right tabular-nums">
@@ -174,6 +188,13 @@ export default function PlayerBar({ onNavigate }: { onNavigate: (id: PageId, par
               title={isShuffle ? "Disable Shuffle" : "Enable Shuffle"}
             >
               <Shuffle size={16} />
+            </button>
+            <button 
+              onClick={() => onNavigate('lyrics')} 
+              className="text-white/60 hover:text-white transition-colors"
+              title="Lyrics"
+            >
+              <Mic2 size={16} />
             </button>
             <button 
               onClick={() => onNavigate('queue')} 

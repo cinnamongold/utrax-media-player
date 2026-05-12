@@ -83,7 +83,7 @@ export default function PlaylistView({ playlistId, onNavigate }: { playlistId: s
             {playlistTracks.map((track, index) => (
               <div 
                 key={track.id + '-' + index}
-                onClick={() => playTrack(track)}
+                onClick={() => playContext(realTracks, index)}
                 className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/10 cursor-pointer group transition-colors"
               >
                 <div className="w-8 text-center text-white/30 group-hover:text-white tabular-nums shrink-0">

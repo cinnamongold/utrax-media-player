@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Home, Library, History, Settings, Disc, Mic, ListMusic, Plus, Download, X, Pin } from 'lucide-react';
+import { Home, Library, History, Settings, Disc, Mic, ListMusic, Plus, Download, X, Pin, Mic2 } from 'lucide-react';
 import { PageId, PageState } from '../types';
 import Logo from './Logo';
 import { usePlayer } from '../context/PlayerContext';
@@ -86,6 +86,7 @@ export default function Sidebar({ route, onNavigate }: SidebarProps) {
       case 'create-playlist': return 'Create Playlist';
       case 'download': return 'Download Music';
       case 'queue': return 'Queue';
+      case 'lyrics': return 'Lyrics';
       default: return 'Page';
     }
   };
@@ -97,6 +98,7 @@ export default function Sidebar({ route, onNavigate }: SidebarProps) {
       case 'playlist': return ListMusic;
       case 'create-playlist': return Plus;
       case 'download': return Download;
+      case 'lyrics': return Mic2;
       default: return Disc;
     }
   };

@@ -28,7 +28,7 @@ export interface AppSettings {
   skipDeleteWarning: boolean;
 }
 
-export type PageId = 'home' | 'library' | 'recents' | 'settings' | 'album' | 'artist' | 'playlist' | 'create-playlist' | 'import' | 'download' | 'queue';
+export type PageId = 'home' | 'library' | 'recents' | 'settings' | 'album' | 'artist' | 'playlist' | 'create-playlist' | 'import' | 'download' | 'queue' | 'lyrics';
 
 export interface PageState {
   id: PageId;

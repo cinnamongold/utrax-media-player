@@ -5,7 +5,7 @@ import { ArrowLeft, Play, Music, Edit2, Shuffle, Trash2 } from 'lucide-react';
 import EditTrackModal from './EditTrackModal';
 
 export default function AlbumView({ albumName, artistName, highlightTrackId, onNavigate }: { albumName: string, artistName: string, highlightTrackId?: string, onNavigate: (id: PageId, params?: any) => void }) {
-  const { tracks, settings, playTrack, updateTrack, isShuffle, toggleShuffle, deleteTrackPermanently, updateSettings } = usePlayer();
+  const { tracks, settings, playTrack, playContext, updateTrack, isShuffle, toggleShuffle, deleteTrackPermanently, updateSettings } = usePlayer();
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [trackToDelete, setTrackToDelete] = useState<Track | null>(null);
 
@@ -60,7 +60,7 @@ export default function AlbumView({ albumName, artistName, highlightTrackId, onN
           </p>
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => albumTracks.length > 0 && playTrack(albumTracks[0])}
+              onClick={() => albumTracks.length > 0 && playContext(albumTracks, 0)}
               className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-lg"
             >
               <Play fill="black" size={24} className="ml-1" />
@@ -69,8 +69,7 @@ export default function AlbumView({ albumName, artistName, highlightTrackId, onN
               onClick={() => {
                 toggleShuffle();
                 if (!isShuffle && albumTracks.length > 0) {
-                  const randomTrack = albumTracks[Math.floor(Math.random() * albumTracks.length)];
-                  playTrack(randomTrack);
+                  playContext(albumTracks, 0);
                 }
               }}
               className={`w-12 h-12 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg ${isShuffle ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-white/10 text-white'}`}
@@ -89,7 +88,7 @@ export default function AlbumView({ albumName, artistName, highlightTrackId, onN
             <div 
               key={track.id}
               id={`track-${track.id}`}
-              onClick={() => playTrack(track)}
+              onClick={() => playContext(albumTracks, index)}
               className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/10 cursor-pointer group transition-colors duration-500"
             >
               <div className="w-8 text-center text-white/30 group-hover:text-white tabular-nums">

@@ -17,6 +17,7 @@ import CreatePlaylistView from './components/pages/CreatePlaylistView';
 import ImportView from './components/pages/ImportView';
 import DownloadView from './components/pages/DownloadView';
 import QueueView from './components/pages/QueueView';
+import LyricsView from './components/pages/LyricsView';
 import { PageId, PageState } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -63,6 +64,7 @@ export default function App() {
                 {route.id === 'import' && <ImportView onNavigate={handleNavigate} />}
                 {route.id === 'download' && <DownloadView onNavigate={handleNavigate} />}
                 {route.id === 'queue' && <QueueView onNavigate={handleNavigate} />}
+                {route.id === 'lyrics' && <LyricsView />}
               </motion.div>
             </AnimatePresence>
           </div>

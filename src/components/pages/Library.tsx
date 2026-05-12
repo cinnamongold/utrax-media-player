@@ -5,7 +5,7 @@ import { PageId, Track } from '../../types';
 import EditTrackModal from './EditTrackModal';
 
 export default function Library({ onNavigate, highlightTrackId }: { onNavigate: (id: PageId, params?: any) => void, highlightTrackId?: string }) {
-  const { tracks, settings, playTrack, updateTrack, playlists, isShuffle, toggleShuffle, deleteTrackPermanently, updateSettings, currentTrack, isPlaying } = usePlayer();
+  const { tracks, settings, playTrack, playContext, updateTrack, playlists, isShuffle, toggleShuffle, deleteTrackPermanently, updateSettings, currentTrack, isPlaying } = usePlayer();
   const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'album' | 'artist' | 'year'>('name-asc');
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [trackToDelete, setTrackToDelete] = useState<Track | null>(null);

@@ -29,6 +29,11 @@ interface PlayerContextType {
   shuffleQueue: () => void;
   playNext: () => void;
   playPrevious: () => void;
+  playContext: (contextTracks: Track[], startIndex?: number) => void;
+  repeatMode: 0 | 1 | 2; // 0 = off, 1 = repeat queue/all, 2 = repeat one
+  toggleRepeat: () => void;
+  initialProgress: number;
+  setInitialProgress: (p: number) => void;
   audioRef: React.RefObject<HTMLAudioElement | null>;
   needsPermission: boolean;
   requestDirectoryPermission: () => Promise<boolean>;
@@ -60,6 +65,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
   const [queue, setQueue] = useState<Track[]>([]);
+  const [repeatMode, setRepeatMode] = useState<0 | 1 | 2>(0);
+  const [initialProgress, setInitialProgress] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [audioSrc, setAudioSrc] = useState<string | undefined>();
 
@@ -125,6 +132,21 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         console.error("Error loading playlists:", e);
       }
 
+
+      // Restore last playing track
+      const lastTrackId = localStorage.getItem('utrax_last_track_id');
+      const lastProgressStr = localStorage.getItem('utrax_last_progress');
+      if (lastTrackId) {
+        const lastTrack = restoredTracks.find(t => t.id === lastTrackId);
+        if (lastTrack) {
+          // Instead of calling playTrack, we just set it so it doesn't auto-play
+          setCurrentTrack(lastTrack);
+          setIsPlaying(false);
+          if (lastProgressStr) {
+            setInitialProgress(parseFloat(lastProgressStr));
+          }
+        }
+      }
       setIsRestoring(false);
     };
     loadData();
@@ -140,6 +162,19 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (isRestoring) return;
     set('playlists', playlists);
   }, [playlists, isRestoring]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (currentTrack) {
+        localStorage.setItem('utrax_last_track_id', currentTrack.id);
+      }
+      if (audioRef.current) {
+        localStorage.setItem('utrax_last_progress', audioRef.current.currentTime.toString());
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [currentTrack]);
 
   const requestDirectoryPermission = async () => {
     if (!directoryHandleRef.current) return false;
@@ -245,6 +280,20 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleShuffle = () => setIsShuffle(!isShuffle);
+  const toggleRepeat = () => setRepeatMode(prev => ((prev + 1) % 3) as 0 | 1 | 2);
+
+  const playContext = async (contextTracks: Track[], startIndex: number = 0) => {
+    if (contextTracks.length === 0) return;
+    const trackToPlay = contextTracks[startIndex];
+    
+    let newQueue = contextTracks.slice(startIndex + 1);
+    if (isShuffle) {
+      // Shuffle the new queue
+      newQueue = [...newQueue].sort(() => Math.random() - 0.5);
+    }
+    setQueue(newQueue);
+    await playTrack(trackToPlay);
+  };
 
   const addToQueue = (track: Track, playNext?: boolean) => {
     setQueue(prev => {
@@ -277,9 +326,23 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   };
 
   const playNext = () => {
+    if (repeatMode === 2 && currentTrack) {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(console.error);
+        setIsPlaying(true);
+      }
+      return;
+    }
+
     if (queue.length > 0) {
       const nextTrack = queue[0];
       setQueue(prev => prev.slice(1));
+      
+      if (repeatMode === 1 && currentTrack) {
+        // If repeating queue, push the current track to the end
+        setQueue(prev => [...prev, currentTrack]);
+      }
       playTrack(nextTrack);
       return;
     }
@@ -298,6 +361,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const currentIndex = tracks.findIndex(t => t.id === currentTrack.id);
     if (currentIndex >= 0 && currentIndex < tracks.length - 1) {
       playTrack(tracks[currentIndex + 1]);
+    } else if (repeatMode === 1 && tracks.length > 0) {
+      // Reached the end, loop back to start if repeating all
+      playTrack(tracks[0]);
     }
   };
 
@@ -325,7 +391,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         isPlaying, setIsPlaying,
         isShuffle, toggleShuffle,
         queue, addToQueue, removeFromQueue, removeMultipleFromQueue, clearQueue, shuffleQueue,
-        playNext, playPrevious,
+        playNext, playPrevious, playContext, repeatMode, toggleRepeat, initialProgress, setInitialProgress,
         audioRef,
         needsPermission, requestDirectoryPermission, isRestoring, deleteTrackPermanently
       }}
