@@ -50,6 +50,10 @@ export default function PlayerBar({ onNavigate }: { onNavigate: (id: PageId, par
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const actualDuration = duration || currentTrack?.duration || 0;
+  const timeRemaining = Math.max(0, actualDuration - progress);
+  const progressPercent = actualDuration > 0 ? Math.min(100, Math.max(0, (progress / actualDuration) * 100)) : 0;
+
   return (
     <footer className="h-24 bg-white/5 backdrop-blur-3xl border border-white/20 rounded-[32px] flex items-center px-10 shadow-2xl relative z-10">
       {/* Now Playing */}
