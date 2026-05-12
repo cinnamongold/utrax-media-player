@@ -29,8 +29,17 @@ export default function Sidebar({ route, onNavigate }: SidebarProps) {
       let next = [...prev];
 
       if (!isStandard) {
+        // Helper to check if two pages represent the same logical entity
+        const isSamePage = (p1: PageState, p2: PageState) => {
+          if (p1.id !== p2.id) return false;
+          if (p1.id === 'album') return p1.params?.albumName === p2.params?.albumName && p1.params?.artistName === p2.params?.artistName;
+          if (p1.id === 'artist') return p1.params?.artistName === p2.params?.artistName;
+          if (p1.id === 'playlist') return p1.params?.playlistId === p2.params?.playlistId;
+          return true; // For other ephemeral pages
+        };
+
         // Find if it already exists to preserve its pinned status
-        const existingIdx = next.findIndex(p => p.state.id === route.id && JSON.stringify(p.state.params) === JSON.stringify(route.params));
+        const existingIdx = next.findIndex(p => isSamePage(p.state, route));
         const isPinned = existingIdx !== -1 ? next[existingIdx].pinned : false;
 
         // Remove it so we can move it to the end
