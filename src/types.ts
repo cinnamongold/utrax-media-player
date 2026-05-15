@@ -9,6 +9,7 @@ export interface Track {
   file?: File; // Optional because it might not be loaded into memory yet
   fileHandle?: any; // FileSystemFileHandle reference for persistent storage
   duration?: number;
+  lyrics?: string;
 }
 
 export interface Playlist {
