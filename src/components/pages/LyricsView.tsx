@@ -31,6 +31,7 @@ export default function LyricsView() {
   const { currentTrack, audioRef } = usePlayer();
   const [currentTime, setCurrentTime] = useState(0);
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
+  const [plainLyrics, setPlainLyrics] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -38,9 +39,17 @@ export default function LyricsView() {
 
   useEffect(() => {
     if (currentTrack?.lyrics) {
-      setLyrics(parseLrc(currentTrack.lyrics));
+      const parsed = parseLrc(currentTrack.lyrics);
+      if (parsed.length > 0) {
+        setLyrics(parsed);
+        setPlainLyrics(null);
+      } else {
+        setLyrics([]);
+        setPlainLyrics(currentTrack.lyrics);
+      }
     } else {
       setLyrics([]);
+      setPlainLyrics(null);
     }
   }, [currentTrack]);
 
@@ -129,14 +138,11 @@ export default function LyricsView() {
                 const isActive = idx === activeIndex;
                 const isPassed = idx < activeIndex;
                 
-                // Determine styling based on scroll state and active state
                 let styling = "text-3xl md:text-5xl font-bold transition-all duration-500 ";
                 
                 if (isScrolling) {
-                  // If scrolling, remove blur so user can read everything, but dim non-active
                   styling += isActive ? "text-white scale-105" : "text-white/50 scale-100";
                 } else {
-                  // If not scrolling, apply the glowy Apple Music effect
                   if (isActive) {
                     styling += "text-white scale-105 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]";
                   } else if (isPassed) {
@@ -162,6 +168,14 @@ export default function LyricsView() {
                   </div>
                 );
               })}
+            </div>
+          ) : plainLyrics ? (
+            <div className="flex flex-col gap-6 md:gap-8 max-w-3xl text-center">
+              {plainLyrics.split('\n').map((line, idx) => (
+                <div key={idx} className="text-3xl md:text-5xl font-bold text-white/80">
+                  {line || " "}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
