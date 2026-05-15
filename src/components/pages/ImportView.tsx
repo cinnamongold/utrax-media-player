@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FolderPlus, Download, ExternalLink, Music, Clock, HardDrive, FileAudio, AlertTriangle } from 'lucide-react';
 import parseAudioMetadata from 'parse-audio-metadata';
+import * as mm from 'music-metadata';
 import { usePlayer } from '../../context/PlayerContext';
 import { PageId, Track } from '../../types';
 import { set } from 'idb-keyval';
@@ -13,12 +14,25 @@ export default function ImportView({ onNavigate }: { onNavigate: (id: PageId, pa
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
-  const processFile = async (file: File, handle?: any): Promise<Track | null> => {
+    const processFile = async (file: File, handle?: any): Promise<Track | null> => {
     try {
+      // Use parse-audio-metadata for general things
       const metadata = await parseAudioMetadata(file);
       
       let coverUrl: string | null = null;
       let coverBlob: Blob | null = null;
+      let lyrics: string | undefined = undefined;
+
+      // Extract detailed tags including lyrics using music-metadata
+      try {
+        const mmMetadata = await mm.parseBlob(file);
+        if (mmMetadata.common.lyrics && mmMetadata.common.lyrics.length > 0) {
+           // SYLT is usually first, or USLT
+           lyrics = mmMetadata.common.lyrics.join('\\n');
+        }
+      } catch (e) {
+        console.warn("music-metadata parsing failed, continuing", e);
+      }
       
       if (metadata.picture) {
         try {
@@ -46,24 +60,14 @@ export default function ImportView({ onNavigate }: { onNavigate: (id: PageId, pa
         coverBlob,
         file,
         fileHandle: handle,
-        duration: metadata.duration
+        duration: metadata.duration,
+        lyrics
       };
     } catch (error) {
-      console.warn('Metadata error:', error);
-      return {
-        id: file.name + file.lastModified + (file.size || 0),
-        title: file.name.replace(/\.[^/.]+$/, ""),
-        artist: "Unknown Artist",
-        album: "Unknown Album",
-        coverUrl: null,
-        coverBlob: null,
-        file,
-        fileHandle: handle
-      };
+      console.error("Error processing file", file.name, error);
+      return null;
     }
-  };
-
-  const scanFolderWithPicker = async () => {
+  };  const scanFolderWithPicker = async () => {
     if (!('showDirectoryPicker' in window)) {
       // Fallback to traditional input
       folderInputRef.current?.click();
